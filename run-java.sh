@@ -1,4 +1,28 @@
-#!/bin/sh
+#!/bin/bash
+
+# check system environment, java8 is required
+tpj=`type -p java`
+
+if [[ "$tpj" ]]; then
+  _java=java
+elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]]; then
+  _java="$JAVA_HOME/bin/java"
+else
+  echo "Error: java8 is required."
+  exit 1
+fi
+
+if [[ "$_java" ]]; then
+  version=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+else
+  echo "Error: java8 is required."
+  exit 1
+fi
+
+if [[ "$version" < "1.8" ]]; then
+  echo "Error: java8 is required."
+  exit 1
+fi
 
 # resolve links - $0 may be a softlink
 PRG="$0"
@@ -15,6 +39,7 @@ done
 
 PRGDIR=`dirname "$PRG"`
 PRGDIR=`cd ${PRGDIR}/..;pwd`
+cd ${PRGDIR}
 
 CP="${PRGDIR}/conf"
 ls=`ls "${PRGDIR}/lib"`
@@ -28,4 +53,4 @@ args=$*
 
 OPTS="-cp ${CP}"
 
-java ${OPTS} com.samsung.demo.App $args
+nohup java -server ${OPTS} com.xxx.XXX $args >/dev/null 2>&1 &
