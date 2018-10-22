@@ -41,16 +41,47 @@ PRGDIR=`dirname "$PRG"`
 PRGDIR=`cd ${PRGDIR}/..;pwd`
 cd ${PRGDIR}
 
-CP="${PRGDIR}/conf"
-ls=`ls "${PRGDIR}/lib"`
+mkdir -p ${PRG_DIR}/logs
+
+# set conf dir path
+if [ -z $CONF_DIR ]; then 
+  CONF_DIR="${PRG_DIR}/conf"
+fi
+
+LOG_CONF_DIR="${PRG_DIR}/conf"
+
+CP="${LOG_CONF_DIR}"
+ls=`ls "${PRG_DIR}/lib"`
 for file in $ls; do
-  if [ -f "${PRGDIR}/lib/$file" ] && [[ "$file" =~ .+\.(jar|zip)$ ]]; then
-    CP="$CP:${PRGDIR}/lib/$file"
+  if [ -f "${PRG_DIR}/lib/$file" ] && [[ "$file" =~ .+\.(jar|zip)$ ]]; then
+    CP="$CP:lib/$file"
   fi
 done
 
-args=$*
+MEM_OPTS="-Xms128M -Xmx128M -XX:MaxDirectMemorySize=128M"
 
-OPTS="-cp ${CP}"
+OPTS="-server ${MEM_OPTS}"
+OPTS="${OPTS} -verbose:gc -XX:+PrintGCDetails -Xloggc:${PRG_DIR}/logs/gc.log"
+OPTS="${OPTS} -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:G1ReservePercent=25"
+OPTS="${OPTS} -XX:InitiatingHeapOccupancyPercent=35"
+OPTS="${OPTS} -Dfile.encoding=UTF-8"
+#OPTS="${OPTS} -Duser.timezone=Asia/Shanghai"
+OPTS="${OPTS} -Dsimple.conf.dir=${CONF_DIR}"
+OPTS="${OPTS} -cp ${CP}"
 
-nohup java -server ${OPTS} com.xxx.XXX $args >/dev/null 2>&1 &
+ULIMIT_N="100000"
+
+ulimit -n ${ULIMIT_N}
+
+for arg in $*; do
+  if [ "$arg" == "--daemon" ]; then
+    daemon_mode="true"
+  fi
+done
+
+if [ "$daemon_mode" == "true" ]; then
+  nohup java ${OPTS} xxx.XXX startup >/dev/null 2>&1 &
+  echo $! > ${PRG_DIR}/bin/.pid
+else
+  exec java ${OPTS} xxx.XXX startup
+fi
